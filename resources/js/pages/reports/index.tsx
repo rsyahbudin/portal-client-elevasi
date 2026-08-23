@@ -1,8 +1,15 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, Camera, ChevronLeft, ChevronRight, ClipboardList, MapPin } from 'lucide-react';
+import { Camera, ChevronRight, ClipboardList } from 'lucide-react';
+import { Paginator } from '@/components/paginator';
 import { ProjectNavTabs } from '@/components/project-nav-tabs';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ProjectPageHeader } from '@/components/project-page-header';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { formatDateChip, formatMonthID } from '@/lib/utils';
 
 interface ReportRow {
@@ -24,6 +31,7 @@ interface Props {
         name: string;
         job_number: string | null;
         location: string | null;
+        can_view_expenses?: boolean;
     };
     reports: {
         data: ReportRow[];
@@ -35,7 +43,11 @@ interface Props {
     selectedMonth: string | null;
 }
 
-export default function ReportsIndex({ project, reports, selectedMonth }: Props) {
+export default function ReportsIndex({
+    project,
+    reports,
+    selectedMonth,
+}: Props) {
     const rows = reports?.data ?? [];
     const months = reports?.available_months ?? [];
     const currentPage = reports?.current_page ?? 1;
@@ -54,39 +66,27 @@ export default function ReportsIndex({ project, reports, selectedMonth }: Props)
     return (
         <>
             <Head title={`Laporan Harian — ${project.name}`} />
-            <div className="flex flex-col gap-6 p-4 sm:p-6">
-                <div>
-                    <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2 text-muted-foreground">
-                        <Link href="/dashboard">
-                            <ArrowLeft className="mr-1.5 h-4 w-4" />
-                            Proyek Saya
-                        </Link>
-                    </Button>
-                    <div className="border-b border-border pb-6">
-                        <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{project.name}</h1>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                            {project.location && (
-                                <span className="flex items-center gap-1">
-                                    <MapPin className="h-3.5 w-3.5" />
-                                    {project.location}
-                                </span>
-                            )}
-                            {project.job_number && <span className="font-mono text-xs">{project.job_number}</span>}
-                        </div>
-                    </div>
-                </div>
+            <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
+                <ProjectPageHeader project={project} />
 
-                <ProjectNavTabs projectId={project.id} active="reports" />
+                <ProjectNavTabs projectId={project.id} active="reports" showExpenses={project.can_view_expenses} />
 
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Laporan Harian</h2>
+                    <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+                        Laporan Harian
+                    </h2>
 
                     {months.length > 0 && (
                         <Select
                             value={selectedMonth ?? 'all'}
-                            onValueChange={(value) => goTo(1, value === 'all' ? null : value)}
+                            onValueChange={(value) =>
+                                goTo(1, value === 'all' ? null : value)
+                            }
                         >
-                            <SelectTrigger size="sm" className="w-44">
+                            <SelectTrigger
+                                size="sm"
+                                className="w-full bg-card sm:w-48"
+                            >
                                 <SelectValue placeholder="Semua bulan" />
                             </SelectTrigger>
                             <SelectContent>
@@ -102,8 +102,8 @@ export default function ReportsIndex({ project, reports, selectedMonth }: Props)
                 </div>
 
                 {rows.length === 0 ? (
-                    <div className="flex flex-col items-center gap-3 border border-dashed border-border py-16 text-center">
-                        <ClipboardList className="h-10 w-10 text-muted-foreground/50" />
+                    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+                        <ClipboardList className="size-10 text-muted-foreground/40" />
                         <p className="text-sm text-muted-foreground">
                             {selectedMonth
                                 ? `Tidak ada laporan pada ${formatMonthID(selectedMonth)}.`
@@ -112,16 +112,17 @@ export default function ReportsIndex({ project, reports, selectedMonth }: Props)
                     </div>
                 ) : (
                     <>
-                        <div className="flex flex-col divide-y divide-border border-t border-border">
+                        <div className="flex flex-col gap-2">
                             {rows.map((r) => {
                                 const chip = formatDateChip(r.report_date);
+
                                 return (
                                     <Link
                                         key={r.id}
                                         href={`${baseUrl}/${r.id}`}
-                                        className="group flex items-center gap-4 bg-card px-2 py-3.5 transition-colors hover:bg-muted/50 sm:px-3"
+                                        className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-xs transition duration-200 hover:border-primary/30 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:gap-4 sm:p-4"
                                     >
-                                        <div className="flex size-12 shrink-0 flex-col items-center justify-center border border-border">
+                                        <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-lg bg-secondary transition-colors group-hover:bg-primary/10">
                                             <span className="font-serif text-lg leading-none font-semibold text-foreground">
                                                 {chip.day}
                                             </span>
@@ -129,46 +130,31 @@ export default function ReportsIndex({ project, reports, selectedMonth }: Props)
                                                 {chip.month}
                                             </span>
                                         </div>
-                                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                                            <p className="line-clamp-1 text-sm text-foreground">{r.summary || 'Belum ada ringkasan'}</p>
+
+                                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                                            <p className="line-clamp-2 text-sm text-foreground sm:line-clamp-1">
+                                                {r.summary ||
+                                                    'Belum ada ringkasan'}
+                                            </p>
+                                            {r.media_count > 0 && (
+                                                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                    <Camera className="size-3.5 shrink-0" />
+                                                    {r.media_count} berkas
+                                                </span>
+                                            )}
                                         </div>
-                                        {r.media_count > 0 && (
-                                            <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                                                <Camera className="h-3.5 w-3.5" />
-                                                {r.media_count}
-                                            </span>
-                                        )}
-                                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
+
+                                        <ChevronRight className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
                                     </Link>
                                 );
                             })}
                         </div>
 
-                        {lastPage > 1 && (
-                            <div className="flex items-center justify-between border-t border-border pt-4">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={currentPage <= 1}
-                                    onClick={() => goTo(currentPage - 1, selectedMonth)}
-                                >
-                                    <ChevronLeft className="mr-1 h-3.5 w-3.5" />
-                                    Sebelumnya
-                                </Button>
-                                <span className="text-xs text-muted-foreground">
-                                    Halaman {currentPage} dari {lastPage}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={currentPage >= lastPage}
-                                    onClick={() => goTo(currentPage + 1, selectedMonth)}
-                                >
-                                    Berikutnya
-                                    <ChevronRight className="ml-1 h-3.5 w-3.5" />
-                                </Button>
-                            </div>
-                        )}
+                        <Paginator
+                            currentPage={currentPage}
+                            lastPage={lastPage}
+                            onNavigate={(page) => goTo(page, selectedMonth)}
+                        />
                     </>
                 )}
             </div>

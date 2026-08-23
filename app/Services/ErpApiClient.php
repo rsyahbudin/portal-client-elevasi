@@ -24,6 +24,9 @@ class ErpApiClient
 
     private const CACHE_TTL_DETAIL = 120;
 
+    /** Byte thumbnail tidak pernah berubah — TTL panjang aman. */
+    private const CACHE_TTL_THUMBNAIL = 21600; // 6 jam
+
     private readonly ?string $token;
 
     public function __construct(?string $token = null)
@@ -76,17 +79,133 @@ class ErpApiClient
     }
 
     /**
+     * 404 dari ERP kalau staf belum menyalakan opt-in laporan belanja untuk
+     * proyek ini — `get()` sudah balikin null untuk semua response gagal,
+     * jadi dari sisi sini "opt-in mati" dan "ERP tidak bisa dihubungi" sama
+     * saja: null. Controller yang menampilkan tab "Belanja" HARUS sudah
+     * mengecek `project.can_view_expenses` dulu sebelum manggil ini, jadi
+     * null di sini seharusnya cuma berarti masalah koneksi, bukan opt-in.
+     */
+    public function expenses(int $projectId, int $page = 1): ?array
+    {
+        return $this->cachedGet("expenses_{$projectId}_p{$page}", "/projects/{$projectId}/expenses?page={$page}", self::CACHE_TTL_LIST);
+    }
+
+    /**
      * Proxy stream byte file dari ERP — dipanggil dari FileProxyController,
      * bukan browser klien langsung, supaya token Bearer tidak pernah sampai
      * ke browser.
+     *
+     * `stream => true` PENTING: tanpa itu Guzzle menarik seluruh isi file ke
+     * memori PHP dulu sebelum sebaris pun sampai ke browser. Foto lapangan
+     * dari HP bisa beberapa MB dan satu halaman dokumentasi memuat 24 di
+     * antaranya — membuffer semuanya bikin TTFB tiap gambar setara waktu
+     * unduh penuhnya dari OneDrive.
+     *
+     * Timeout dinaikkan dari default 10 detik: batas itu masuk akal untuk
+     * panggilan JSON, tapi file besar lewat OneDrive wajar lebih lama.
      */
     public function streamFile(string $path): Response
     {
         try {
-            return $this->client()->get(rtrim(config('services.erp.base_url'), '/').$path);
+            return $this->client()
+                ->timeout(30)
+                ->withOptions(['stream' => true])
+                ->get(rtrim(config('services.erp.base_url'), '/').$path);
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             report($e);
             abort(502, 'Tidak bisa menghubungi ERP.');
+        }
+    }
+
+    /**
+     * Ambil byte thumbnail, dengan cache DI SISI PORTAL — bukan hanya di ERP.
+     *
+     * Alasannya bukan sekadar hemat jaringan, tapi worker PHP-FPM. Setiap
+     * permintaan gambar yang diteruskan ke ERP memakai DUA worker sekaligus:
+     * satu ditahan portal selama menunggu jawaban, satu lagi dipakai ERP
+     * untuk menjawab. Pada pool yang kecil, belasan gambar di satu halaman
+     * galeri sanggup menghabiskan seluruh worker sampai permintaan navigasi
+     * pengguna ikut mengantre di belakangnya — bahkan bisa saling mengunci,
+     * karena worker portal menunggu ERP yang tidak kebagian worker.
+     *
+     * Dengan cache di sini, permintaan berikutnya cukup satu worker dan tidak
+     * menyentuh ERP sama sekali.
+     *
+     * Kunci cache WAJIB memuat token, sama seperti cachedGet(). Tanpa itu,
+     * PIN lain bisa menerima byte foto langsung dari cache tanpa pernah
+     * melewati pemeriksaan kepemilikan proyek di ERP.
+     *
+     * @return array{body: string, mime: string}|null
+     */
+    public function thumbnail(string $path): ?array
+    {
+        if (! $this->token) {
+            return null;
+        }
+
+        $key = 'erp_thumb:'.md5($this->token).':'.md5($path);
+        $cached = $this->cacheGet($key);
+
+        if ($cached !== null) {
+            // Ketidaktersediaan ikut disimpan supaya berkas tanpa thumbnail
+            // tidak memicu perjalanan ke ERP berulang kali.
+            return $cached === false ? null : $cached;
+        }
+
+        $result = $this->fetchThumbnail($path);
+
+        $this->cachePut($key, $result ?? false);
+
+        return $result;
+    }
+
+    /**
+     * @return array{body: string, mime: string}|null
+     */
+    private function fetchThumbnail(string $path): ?array
+    {
+        try {
+            $response = $this->client()
+                ->timeout(20)
+                ->get(rtrim(config('services.erp.base_url'), '/').$path);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            report($e);
+
+            return null;
+        }
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        return [
+            'body' => $response->body(),
+            'mime' => $response->header('Content-Type') ?: 'image/jpeg',
+        ];
+    }
+
+    /**
+     * Byte biner ditaruh di Redis, bukan cache bawaan (`database`) — menaruh
+     * blob ratusan KB di tabel cache PostgreSQL justru memindahkan beban ke
+     * database. Redis mati bukan alasan untuk menggagalkan permintaan:
+     * cache-nya opsional, jalur ke ERP tetap jalan.
+     */
+    private function cacheGet(string $key): mixed
+    {
+        try {
+            return Cache::store('redis')->get($key);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function cachePut(string $key, mixed $value): void
+    {
+        try {
+            Cache::store('redis')->put($key, $value, self::CACHE_TTL_THUMBNAIL);
+        } catch (\Throwable) {
+            // Cache hanya percepatan — kegagalannya tidak boleh terlihat klien.
         }
     }
 

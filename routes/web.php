@@ -3,6 +3,7 @@
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentationController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\FileProxyController;
 use App\Http\Controllers\KurvaSController;
 use App\Http\Controllers\PortalLoginController;
@@ -23,9 +24,11 @@ Route::middleware('portal.session')->group(function () {
     Route::get('projects/{project}/reports/{report}', [DailyReportController::class, 'show'])->name('projects.reports.show');
     Route::get('projects/{project}/kurva-s', [KurvaSController::class, 'index'])->name('projects.kurva-s');
     Route::get('projects/{project}/documentation', [DocumentationController::class, 'index'])->name('projects.documentation');
+    Route::get('projects/{project}/belanja', [ExpenseController::class, 'index'])->name('projects.expenses');
 
     Route::get('files/pipeline-attachment/{attachment}', [FileProxyController::class, 'pipelineAttachment'])->name('files.pipeline-attachment');
     Route::get('files/daily-report-media/{media}', [FileProxyController::class, 'dailyReportMedia'])->name('files.daily-report-media');
+    Route::get('files/daily-report-media/{media}/thumbnail', [FileProxyController::class, 'dailyReportMediaThumbnail'])->name('files.daily-report-media.thumbnail');
 });
 
 require __DIR__.'/settings.php';

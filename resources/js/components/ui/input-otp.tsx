@@ -39,8 +39,10 @@ const InputOTPSlot = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "relative flex h-9 w-9 items-center justify-center border-y border-r border-input text-sm shadow-sm transition-all first:rounded-l-md first:border-l last:rounded-r-md",
-        isActive && "z-10 ring-1 ring-ring",
+        // Kotak terpisah, bukan satu strip menyatu — tiap digit jadi target
+        // visual sendiri sehingga lebih mudah dicek ulang saat mengetik PIN.
+        "relative flex h-12 w-full items-center justify-center rounded-lg border border-input bg-card text-lg font-semibold tabular-nums shadow-xs transition-all",
+        isActive && "z-10 border-ring ring-2 ring-ring/30",
         className
       )}
       {...props}

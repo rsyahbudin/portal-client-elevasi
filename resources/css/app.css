@@ -14,9 +14,26 @@
         'Noto Color Emoji';
     --font-serif: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
 
+    --radius-xl: calc(var(--radius) + 4px);
     --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 3px);
+    --radius-sm: calc(var(--radius) - 6px);
+
+    /*
+     * Bayangan berlapis dengan rona sedikit hijau (bukan abu netral) supaya
+     * kartu terasa menyatu dengan palet, bukan seperti ditempel. Sengaja
+     * halus — kedalaman datang dari lapisan permukaan, bukan bayangan tebal.
+     */
+    --shadow-xs: 0 1px 2px 0 oklch(0.2 0.02 165 / 0.05);
+    --shadow-sm:
+        0 1px 3px 0 oklch(0.2 0.02 165 / 0.07),
+        0 1px 2px -1px oklch(0.2 0.02 165 / 0.05);
+    --shadow-md:
+        0 4px 12px -2px oklch(0.2 0.02 165 / 0.09),
+        0 2px 6px -2px oklch(0.2 0.02 165 / 0.05);
+    --shadow-lg:
+        0 12px 28px -6px oklch(0.2 0.02 165 / 0.12),
+        0 4px 10px -4px oklch(0.2 0.02 165 / 0.06);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -63,80 +80,119 @@
 }
 
 /*
- * Palet monokrom — hitam/putih/abu murni (chroma 0), tanpa warna brand.
- * Satu-satunya warna non-netral yang tersisa: --destructive (merah), dipakai
- * sangat terbatas untuk aksi merusak (hapus akun) sebagai sinyal keselamatan,
- * bukan aksen dekoratif.
+ * Palet: netral bernuansa hijau + hijau brand Elevasi sebagai satu-satunya
+ * aksen. Nilai hijau diambil langsung dari logo (#177e54 -> oklch(0.527
+ * 0.112 160)); semua netral memakai hue 165 dengan chroma sangat rendah
+ * supaya abu-abunya terasa satu keluarga dengan brand, bukan abu dingin
+ * generik.
+ *
+ * Menggantikan palet monokrom murni (chroma 0) yang lama — keputusan itu
+ * sengaja dibalik saat portal diarahkan ke gaya produk modern; kalau nanti
+ * ingin kembali netral total, cukup set chroma semua token ke 0.
+ *
+ * Kedalaman dibangun dari LAPISAN PERMUKAAN, bukan bayangan tebal:
+ * --background (abu halus) < --card (putih murni). Kartu terangkat karena
+ * lebih terang dari alasnya. Di mode gelap urutannya dibalik: --card lebih
+ * terang dari --background.
  */
 :root {
-    --background: oklch(0.99 0 0);
-    --foreground: oklch(0.15 0 0);
+    --radius: 0.75rem;
+
+    --background: oklch(0.976 0.003 165);
+    --foreground: oklch(0.19 0.012 165);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.15 0 0);
+    --card-foreground: oklch(0.19 0.012 165);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.15 0 0);
-    --primary: oklch(0.15 0 0);
+    --popover-foreground: oklch(0.19 0.012 165);
+
+    /* Hijau brand — kontras 5.06:1 dengan teks putih, lolos WCAG AA. */
+    --primary: oklch(0.527 0.112 160);
     --primary-foreground: oklch(0.99 0 0);
-    --secondary: oklch(0.94 0 0);
-    --secondary-foreground: oklch(0.15 0 0);
-    --muted: oklch(0.95 0 0);
-    --muted-foreground: oklch(0.46 0 0);
-    --accent: oklch(0.92 0 0);
-    --accent-foreground: oklch(0.15 0 0);
-    --destructive: oklch(0.55 0.19 25);
-    --destructive-foreground: oklch(0.55 0.19 25);
-    --border: oklch(0.87 0 0);
-    --input: oklch(0.87 0 0);
-    --ring: oklch(0.15 0 0);
-    --chart-1: oklch(0.3 0 0);
-    --chart-2: oklch(0.42 0 0);
-    --chart-3: oklch(0.54 0 0);
-    --chart-4: oklch(0.66 0 0);
-    --chart-5: oklch(0.78 0 0);
-    --radius: 0.4rem;
-    --sidebar: oklch(0.97 0 0);
-    --sidebar-foreground: oklch(0.15 0 0);
-    --sidebar-primary: oklch(0.15 0 0);
+
+    --secondary: oklch(0.958 0.005 165);
+    --secondary-foreground: oklch(0.3 0.015 165);
+    --muted: oklch(0.962 0.004 165);
+    --muted-foreground: oklch(0.505 0.014 165);
+    --accent: oklch(0.947 0.019 163);
+    --accent-foreground: oklch(0.35 0.055 160);
+
+    --destructive: oklch(0.585 0.2 27);
+    --destructive-foreground: oklch(0.99 0 0);
+
+    --border: oklch(0.915 0.005 165);
+    --input: oklch(0.905 0.006 165);
+    --ring: oklch(0.527 0.112 160);
+
+    /*
+     * Kurva S: realisasi (chart-1, hijau brand) vs rencana (chart-2, biru).
+     * Pasangan ini DIVALIDASI, bukan dikira-kira — lolos enam pemeriksaan
+     * palet kategorikal di permukaan putih: pita lightness, chroma minimum,
+     * pemisahan buta warna (deutan ΔE 18.7 · tritan 8.1), ambang penglihatan
+     * normal (ΔE 20.8), dan kontras terhadap alas.
+     * Jangan ganti nilainya tanpa memvalidasi ulang pasangannya.
+     */
+    --chart-1: oklch(0.527 0.112 160);
+    --chart-2: oklch(0.601 0.142 259);
+    --chart-3: oklch(0.62 0.1 200);
+    --chart-4: oklch(0.68 0.11 130);
+    --chart-5: oklch(0.58 0.09 300);
+
+    --sidebar: oklch(0.985 0.003 165);
+    --sidebar-foreground: oklch(0.19 0.012 165);
+    --sidebar-primary: oklch(0.527 0.112 160);
     --sidebar-primary-foreground: oklch(0.99 0 0);
-    --sidebar-accent: oklch(0.92 0 0);
-    --sidebar-accent-foreground: oklch(0.15 0 0);
-    --sidebar-border: oklch(0.88 0 0);
-    --sidebar-ring: oklch(0.15 0 0);
+    --sidebar-accent: oklch(0.947 0.019 163);
+    --sidebar-accent-foreground: oklch(0.35 0.055 160);
+    --sidebar-border: oklch(0.915 0.005 165);
+    --sidebar-ring: oklch(0.527 0.112 160);
 }
 
 .dark {
-    --background: oklch(0.15 0 0);
-    --foreground: oklch(0.97 0 0);
-    --card: oklch(0.19 0 0);
-    --card-foreground: oklch(0.97 0 0);
-    --popover: oklch(0.19 0 0);
-    --popover-foreground: oklch(0.97 0 0);
-    --primary: oklch(0.97 0 0);
-    --primary-foreground: oklch(0.15 0 0);
-    --secondary: oklch(0.27 0 0);
-    --secondary-foreground: oklch(0.97 0 0);
-    --muted: oklch(0.24 0 0);
-    --muted-foreground: oklch(0.64 0 0);
-    --accent: oklch(0.3 0 0);
-    --accent-foreground: oklch(0.97 0 0);
-    --destructive: oklch(0.6 0.19 25);
-    --destructive-foreground: oklch(0.75 0.15 25);
-    --border: oklch(0.3 0 0);
-    --input: oklch(0.3 0 0);
-    --ring: oklch(0.8 0 0);
-    --chart-1: oklch(0.85 0 0);
-    --chart-2: oklch(0.72 0 0);
-    --chart-3: oklch(0.6 0 0);
-    --chart-4: oklch(0.48 0 0);
-    --chart-5: oklch(0.36 0 0);
-    --sidebar: oklch(0.18 0 0);
-    --sidebar-foreground: oklch(0.97 0 0);
-    --sidebar-primary: oklch(0.97 0 0);
-    --sidebar-primary-foreground: oklch(0.15 0 0);
-    --sidebar-accent: oklch(0.27 0 0);
-    --sidebar-accent-foreground: oklch(0.97 0 0);
-    --sidebar-border: oklch(0.3 0 0);
-    --sidebar-ring: oklch(0.8 0 0);
+    --background: oklch(0.165 0.008 165);
+    --foreground: oklch(0.965 0.003 165);
+    --card: oklch(0.208 0.009 165);
+    --card-foreground: oklch(0.965 0.003 165);
+    --popover: oklch(0.208 0.009 165);
+    --popover-foreground: oklch(0.965 0.003 165);
+
+    /* Hijau dinaikkan lightness-nya supaya tetap terbaca di atas gelap. */
+    --primary: oklch(0.7 0.13 160);
+    --primary-foreground: oklch(0.17 0.02 165);
+
+    --secondary: oklch(0.268 0.011 165);
+    --secondary-foreground: oklch(0.94 0.004 165);
+    --muted: oklch(0.248 0.01 165);
+    --muted-foreground: oklch(0.68 0.013 165);
+    --accent: oklch(0.3 0.028 163);
+    --accent-foreground: oklch(0.9 0.04 160);
+
+    --destructive: oklch(0.65 0.19 27);
+    --destructive-foreground: oklch(0.16 0.02 165);
+
+    --border: oklch(0.298 0.011 165);
+    --input: oklch(0.32 0.012 165);
+    --ring: oklch(0.7 0.13 160);
+
+    /*
+     * Bukan pembalikan otomatis dari mode terang — pita lightness untuk alas
+     * gelap berbeda (0.48–0.67, bukan 0.43–0.77), jadi pasangan ini dipilih
+     * dan divalidasi ulang terhadap permukaan kartu gelap: deutan ΔE 19.3,
+     * penglihatan normal ΔE 20.8, kontras lolos.
+     */
+    --chart-1: oklch(0.65 0.13 160);
+    --chart-2: oklch(0.64 0.15 255);
+    --chart-3: oklch(0.66 0.1 200);
+    --chart-4: oklch(0.67 0.11 130);
+    --chart-5: oklch(0.63 0.09 300);
+
+    --sidebar: oklch(0.19 0.009 165);
+    --sidebar-foreground: oklch(0.965 0.003 165);
+    --sidebar-primary: oklch(0.7 0.13 160);
+    --sidebar-primary-foreground: oklch(0.17 0.02 165);
+    --sidebar-accent: oklch(0.3 0.028 163);
+    --sidebar-accent-foreground: oklch(0.9 0.04 160);
+    --sidebar-border: oklch(0.298 0.011 165);
+    --sidebar-ring: oklch(0.7 0.13 160);
 }
 
 @layer base {
@@ -146,10 +202,32 @@
 
     body {
         @apply bg-background text-foreground;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 
     ::selection {
         background-color: var(--primary);
         color: var(--primary-foreground);
+    }
+
+    /* Angka yang berubah (persen progres, jumlah berkas) tidak boleh bergoyang. */
+    .tabular-nums {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+/*
+ * Klien membuka portal ini dari HP di lapangan — sering sambil berjalan.
+ * Hormati preferensi kurangi-gerak, dan matikan animasi dekoratif di sana.
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }

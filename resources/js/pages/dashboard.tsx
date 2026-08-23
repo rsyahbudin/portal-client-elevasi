@@ -1,7 +1,15 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowUpRight, Building2, FolderKanban, MapPin } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import {
+    ArrowUpRight,
+    Building2,
+    CheckCircle2,
+    FolderKanban,
+    HardHat,
+    MapPin,
+} from 'lucide-react';
+import { StageTrack } from '@/components/stage-track';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { resolveStageProgress } from '@/lib/pipeline';
 import type { PortalShared } from '@/types';
 
 interface ProjectRow {
@@ -22,123 +30,169 @@ interface Props {
     erpUnreachable: boolean;
 }
 
-/** Hanya tahap yang boleh diekspos ke klien — cocok dengan `Project::CLIENT_SAFE_STAGES` di ERP. */
-const STAGE_LABELS: Record<string, string> = {
-    survey: 'Survey',
-    layout: 'Layout',
-    desain_3d: 'Desain 3D',
-    pelaksanaan: 'Pelaksanaan',
-    pengujian: 'Pengujian',
-    serah_terima: 'Serah Terima',
-};
-
 function ProjectCard({ project }: { project: ProjectRow }) {
-    const stageLabel = project.pipeline_stage ? STAGE_LABELS[project.pipeline_stage] : null;
-    const isCompleted = project.status === 'completed';
+    const stage = resolveStageProgress(project.pipeline_stage);
 
     return (
         <Link
             href={`/projects/${project.id}/reports`}
-            className="group flex flex-col border border-border bg-card transition-colors duration-150 hover:border-foreground/30"
+            className="group flex h-full flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
         >
-            <div className="h-1 bg-primary" aria-hidden />
-
-            <div className="flex flex-1 flex-col gap-4 px-5 pt-4 pb-4">
-                <div className="flex items-start justify-between gap-2">
-                    <h3 className="line-clamp-2 min-w-0 font-serif text-lg leading-snug font-semibold text-foreground">
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <h3 className="line-clamp-2 font-serif text-lg leading-snug font-semibold text-foreground">
                         {project.name}
                     </h3>
-                    <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    {project.job_number && (
+                        <p className="mt-1 font-mono text-xs text-muted-foreground">
+                            {project.job_number}
+                        </p>
+                    )}
                 </div>
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <ArrowUpRight className="size-4" />
+                </span>
+            </div>
 
-                <div className="space-y-1.5 text-sm text-muted-foreground">
+            <div className="space-y-2">
+                <StageTrack step={stage.step} total={stage.total} />
+                {/* Sengaja TANPA nama tahap ("Survey"/"Pelaksanaan"/dst) — ini
+                    portal pelaksanaan murni, bukan pelacak proses bisnis
+                    internal. Instruksi eksplisit: "tidak usah ada sama sekali
+                    stage namenya". Cuma indikator posisi numerik yang tersisa. */}
+                <div className="flex items-center justify-end gap-2">
+                    {stage.isComplete && (
+                        <CheckCircle2 className="size-3.5 shrink-0 text-primary" />
+                    )}
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                        {stage.step > 0
+                            ? `Tahap ${stage.step}/${stage.total}`
+                            : 'Belum dimulai'}
+                    </span>
+                </div>
+            </div>
+
+            {(project.location ||
+                project.work_site_name ||
+                project.jenis_pekerjaan) && (
+                <div className="mt-auto space-y-1.5 border-t border-border pt-3 text-sm text-muted-foreground">
                     {project.location && (
-                        <p className="flex items-center gap-1.5">
-                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <p className="flex items-center gap-2">
+                            <MapPin className="size-3.5 shrink-0" />
                             <span className="truncate">{project.location}</span>
                         </p>
                     )}
                     {project.work_site_name && (
-                        <p className="flex items-center gap-1.5">
-                            <Building2 className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{project.work_site_name}</span>
+                        <p className="flex items-center gap-2">
+                            <Building2 className="size-3.5 shrink-0" />
+                            <span className="truncate">
+                                {project.work_site_name}
+                            </span>
                         </p>
                     )}
-                    {project.job_number && <p className="font-mono text-xs text-muted-foreground/80">{project.job_number}</p>}
-                </div>
-
-                {(stageLabel || isCompleted || project.jenis_pekerjaan) && (
-                    <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
-                        {isCompleted ? (
-                            <Badge variant="secondary" className="rounded-sm font-normal">
-                                Selesai
-                            </Badge>
-                        ) : (
-                            stageLabel && (
-                                <Badge variant="secondary" className="rounded-sm font-normal">
-                                    {stageLabel}
-                                </Badge>
-                            )
-                        )}
-                        {project.jenis_pekerjaan && (
-                            <Badge variant="outline" className="rounded-sm font-normal text-muted-foreground">
+                    {project.jenis_pekerjaan && (
+                        <p className="flex items-center gap-2">
+                            <HardHat className="size-3.5 shrink-0" />
+                            <span className="truncate">
                                 {project.jenis_pekerjaan}
-                            </Badge>
-                        )}
-                    </div>
-                )}
-            </div>
+                            </span>
+                        </p>
+                    )}
+                </div>
+            )}
         </Link>
     );
 }
 
-export default function Dashboard({ projects, scopeLabel, erpUnreachable }: Props) {
+function SummaryStat({ value, label }: { value: number; label: string }) {
+    return (
+        // px-3 di mobile: tiga ubin dalam 375px cuma kebagian ~107px, padding
+        // penuh menyisakan terlalu sedikit ruang untuk labelnya.
+        <div className="rounded-xl border border-border bg-card px-3 py-3 shadow-xs sm:px-4">
+            <p className="font-serif text-2xl font-semibold text-foreground tabular-nums">
+                {value}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
+        </div>
+    );
+}
+
+export default function Dashboard({
+    projects,
+    scopeLabel,
+    erpUnreachable,
+}: Props) {
     const { portal } = usePage<{ portal: PortalShared }>().props;
     const firstName = portal?.viewer_name?.split(' ')[0] ?? '';
+
+    const stages = projects.map((p) => resolveStageProgress(p.pipeline_stage));
+    const runningCount = stages.filter(
+        (s) => s.step > 0 && !s.isComplete,
+    ).length;
+    const completedCount = stages.filter((s) => s.isComplete).length;
 
     return (
         <>
             <Head title="Proyek" />
-            <div className="flex flex-col gap-8 p-4 sm:p-6">
-                <div className="flex flex-col gap-3 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <h1 className="font-serif text-3xl font-semibold tracking-tight sm:text-4xl">
-                            {firstName ? `Halo, ${firstName}` : scopeLabel || 'Proyek'}
-                        </h1>
-                        <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-                            {scopeLabel
-                                ? `Pantau progres, laporan harian, dan foto lapangan untuk ${scopeLabel}.`
-                                : 'Pantau progres, laporan harian, dan foto lapangan proyek Anda bersama Elevasi Design Build.'}
-                        </p>
-                    </div>
-                    {projects.length > 0 && (
-                        <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                            {projects.length} proyek
-                        </p>
-                    )}
-                </div>
+            <div className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-6 lg:p-8">
+                <header className="min-w-0">
+                    <h1 className="font-serif text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+                        {firstName
+                            ? `Halo, ${firstName}`
+                            : scopeLabel || 'Proyek'}
+                    </h1>
+                    <p className="mt-2 max-w-lg text-sm text-muted-foreground sm:text-base">
+                        {scopeLabel
+                            ? `Pantau progres, laporan harian, dan foto lapangan untuk ${scopeLabel}.`
+                            : 'Pantau progres, laporan harian, dan foto lapangan proyek Anda bersama Elevasi Design Build.'}
+                    </p>
+                </header>
 
                 {erpUnreachable && (
                     <Alert variant="destructive">
                         <AlertTitle>Sebagian data tidak bisa dimuat</AlertTitle>
-                        <AlertDescription>Coba muat ulang halaman beberapa saat lagi.</AlertDescription>
+                        <AlertDescription>
+                            Coba muat ulang halaman beberapa saat lagi.
+                        </AlertDescription>
                     </Alert>
                 )}
 
+                {/* Ringkasan hanya berguna kalau ada beberapa proyek — untuk PIN
+                    satu proyek, angkanya cuma mengulang isi kartu di bawahnya. */}
+                {projects.length > 1 && (
+                    <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+                        <SummaryStat
+                            value={projects.length}
+                            label="Total proyek"
+                        />
+                        <SummaryStat
+                            value={runningCount}
+                            label="Sedang berjalan"
+                        />
+                        <SummaryStat
+                            value={completedCount}
+                            label="Serah terima"
+                        />
+                    </div>
+                )}
+
                 {projects.length === 0 && !erpUnreachable && (
-                    <div className="flex flex-col items-center gap-3 border border-dashed border-border py-16 text-center">
-                        <FolderKanban className="h-10 w-10 text-muted-foreground/50" />
+                    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+                        <FolderKanban className="size-10 text-muted-foreground/40" />
                         <div>
-                            <p className="font-medium">Belum ada proyek yang terhubung</p>
+                            <p className="font-medium text-foreground">
+                                Belum ada proyek yang terhubung
+                            </p>
                             <p className="mt-1 text-sm text-muted-foreground">
-                                Hubungi tim Elevasi Anda kalau ini seharusnya tidak kosong.
+                                Hubungi tim Elevasi Anda kalau ini seharusnya
+                                tidak kosong.
                             </p>
                         </div>
                     </div>
                 )}
 
                 {projects.length > 0 && (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                         {projects.map((p) => (
                             <ProjectCard key={p.id} project={p} />
                         ))}

@@ -10,7 +10,11 @@ export default function Appearance() {
             <h1 className="sr-only">Pengaturan Tampilan</h1>
 
             <div className="space-y-6">
-                <Heading variant="small" title="Tampilan" description="Atur mode tampilan (terang/gelap)" />
+                <Heading
+                    variant="small"
+                    title="Tampilan"
+                    description="Atur mode tampilan (terang/gelap)"
+                />
                 <AppearanceTabs />
             </div>
         </>

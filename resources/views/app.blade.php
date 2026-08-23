@@ -19,14 +19,16 @@
             })();
         </script>
 
-        {{-- Inline style to set the HTML background color based on our theme in app.css --}}
+        {{-- Warna alas harus sudah benar SEBELUM app.css termuat, supaya tidak
+             ada kedip putih/gelap saat load. Nilai di sini wajib sama persis
+             dengan --background di resources/css/app.css. --}}
         <style>
             html {
-                background-color: oklch(1 0 0);
+                background-color: oklch(0.976 0.003 165);
             }
 
             html.dark {
-                background-color: oklch(0.145 0 0);
+                background-color: oklch(0.165 0.008 165);
             }
         </style>
 
