@@ -61,7 +61,6 @@ type SortKey =
     | 'expense_date'
     | 'description'
     | 'category_label'
-    | 'vendor_name'
     | 'quantity'
     | 'unit'
     | 'unit_price'
@@ -75,7 +74,6 @@ const COLUMNS: { key: SortKey; label: string; align?: 'right'; title?: string }[
     { key: 'expense_date', label: 'Tanggal' },
     { key: 'description', label: 'Uraian' },
     { key: 'category_label', label: 'Kategori' },
-    { key: 'vendor_name', label: 'Vendor' },
     { key: 'quantity', label: 'Qty', align: 'right' },
     { key: 'unit', label: 'Satuan' },
     { key: 'unit_price', label: 'Harga Satuan', align: 'right' },
@@ -127,7 +125,6 @@ function matchesSearch(row: ExpenseRow, query: string): boolean {
     const haystack = [
         row.description,
         row.category_label,
-        row.vendor_name,
         row.unit,
         row.quantity != null ? String(row.quantity) : null,
         row.unit_price != null ? String(row.unit_price) : null,
@@ -246,7 +243,7 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
                         <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="Cari uraian, kategori, vendor…"
+                            placeholder="Cari uraian, kategori…"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="h-9 w-full pl-8 text-sm"
@@ -340,7 +337,7 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
                         <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             type="text"
-                            placeholder="Cari uraian, kategori, vendor…"
+                            placeholder="Cari uraian, kategori…"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             className="h-9 pl-8 text-sm"
@@ -473,10 +470,6 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
                                             </div>
                                             <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-lg bg-muted/30 px-3 py-2 text-xs">
                                                 <div className="flex justify-between gap-2">
-                                                    <span className="text-muted-foreground">Vendor</span>
-                                                    <span className="truncate text-right font-medium">{row.vendor_name || '—'}</span>
-                                                </div>
-                                                <div className="flex justify-between gap-2">
                                                     <span className="text-muted-foreground">Qty</span>
                                                     <span className="text-right font-medium tabular-nums">
                                                         {row.quantity != null ? fmtNumber(row.quantity) : '—'} {row.unit || ''}
@@ -509,15 +502,14 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
                                 {/* Desktop & tablet: tabel penuh */}
                                 <div className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-xs sm:block">
                                     <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[980px] table-fixed text-sm lg:min-w-0">
+                                    <table className="w-full min-w-[860px] table-fixed text-sm lg:min-w-0">
                                         <colgroup>
-                                            <col className="w-[8%]" />
-                                            <col className="w-[24%]" />
-                                            <col className="w-[13%]" />
-                                            <col className="w-[13%]" />
-                                            <col className="w-[6%]" />
+                                            <col className="w-[9%]" />
+                                            <col className="w-[30%]" />
+                                            <col className="w-[16%]" />
                                             <col className="w-[7%]" />
-                                            <col className="w-[10%]" />
+                                            <col className="w-[8%]" />
+                                            <col className="w-[11%]" />
                                             <col className="w-[9%]" />
                                             <col className="w-[10%]" />
                                         </colgroup>
@@ -572,9 +564,6 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
                                                     </td>
                                                     <td className="px-2.5 py-2.5 break-words whitespace-normal text-muted-foreground">
                                                         {row.category_label}
-                                                    </td>
-                                                    <td className="px-2.5 py-2.5 break-words whitespace-normal text-muted-foreground">
-                                                        {row.vendor_name || '—'}
                                                     </td>
                                                     <td className="overflow-hidden px-2.5 py-2.5 text-right tabular-nums whitespace-nowrap text-muted-foreground">
                                                         {row.quantity != null ? fmtNumber(row.quantity) : '—'}
