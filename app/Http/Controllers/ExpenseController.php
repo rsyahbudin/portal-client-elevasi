@@ -21,11 +21,18 @@ class ExpenseController extends Controller
         // ProjectNavTabs), tapi orang bisa saja ketik URL-nya langsung.
         abort_unless($projectData['can_view_expenses'] ?? false, 404);
 
-        $expenses = $erp->expenses($project, (int) $request->query('page', 1));
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+
+        $expenses = $erp->expenses($project, (int) $request->query('page', 1), $dateFrom, $dateTo);
 
         return Inertia::render('expenses/index', [
             'project' => $projectData,
             'expenses' => $expenses,
+            'filters' => [
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
         ]);
     }
 }
