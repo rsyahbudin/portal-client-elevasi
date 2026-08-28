@@ -1,7 +1,8 @@
 import { Head, router } from '@inertiajs/react';
-import { ArrowDownCircle, ArrowUpCircle, BarChart3, ChevronDown, ChevronsUpDown, ChevronUp, List, Search, Wallet, X } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, BarChart3, ChevronDown, ChevronsUpDown, ChevronUp, Images, List, Search, Wallet, X } from 'lucide-react';
 import { FormEvent, useMemo, useState } from 'react';
 import { ExpenseDailyChart, type ExpenseDailyRow } from '@/components/expense-daily-chart';
+import { MediaLightbox, type LightboxItem } from '@/components/media-lightbox';
 import { ProjectNavTabs } from '@/components/project-nav-tabs';
 import { ProjectPageHeader } from '@/components/project-page-header';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,15 @@ interface CategoryTotal {
     count: number;
 }
 
+interface ProofPhoto {
+    id: number;
+    file_name: string;
+    mime_type: string | null;
+    caption: string | null;
+    expense_date: string;
+    uploaded_at: string;
+}
+
 interface Props {
     project: {
         id: number;
@@ -50,11 +60,33 @@ interface Props {
         daily: ExpenseDailyRow[];
         date_from: string;
         date_to: string;
+        proof_photos: ProofPhoto[];
     } | null;
     filters: {
         date_from: string | null;
         date_to: string | null;
     };
+}
+
+const expenseProofFileUrl = (id: number) => `/files/expense-proof/${id}`;
+const expenseProofDownloadUrl = (id: number) => `/files/expense-proof/${id}?download=1`;
+
+function formatProofDateHeader(date: string): string {
+    const d = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return date;
+    return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+}
+
+/** Kelompokkan per tanggal belanja — urutan mengikuti urutan kemunculan (server sudah urut terbaru dulu). */
+function groupProofsByDate(photos: ProofPhoto[]): Map<string, ProofPhoto[]> {
+    const groups = new Map<string, ProofPhoto[]>();
+    for (const photo of photos) {
+        const key = photo.expense_date;
+        const existing = groups.get(key);
+        if (existing) existing.push(photo);
+        else groups.set(key, [photo]);
+    }
+    return groups;
 }
 
 type SortKey =
@@ -143,10 +175,19 @@ function fmtNumber(n: number): string {
 export default function ExpensesIndex({ project, expenses, filters }: Props) {
     const rawRows = expenses?.data ?? [];
     const summary = expenses?.summary;
-    const [view, setView] = useState<'list' | 'stats'>('list');
+    const proofPhotos = expenses?.proof_photos ?? [];
+    const [view, setView] = useState<'list' | 'stats' | 'bukti'>('list');
     const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'expense_date', direction: 'desc' });
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState('all');
+    const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+    const lightboxItems: LightboxItem[] = proofPhotos.map((p) => ({
+        id: p.id,
+        caption: p.caption,
+        fileName: p.file_name,
+        isVideo: !!p.mime_type?.startsWith('video/'),
+    }));
 
     const categoryOptions = useMemo(
         () => [...new Set(rawRows.map((row) => row.category_label))].sort((a, b) => a.localeCompare(b, 'id-ID')),
@@ -282,6 +323,16 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
                         >
                             <BarChart3 className="size-3.5" /> Statistik
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setView('bukti')}
+                            className={cn(
+                                'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                                view === 'bukti' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
+                            )}
+                        >
+                            <Images className="size-3.5" /> Bukti
+                        </button>
                     </div>
                 </form>
 
@@ -365,10 +416,20 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
                         >
                             <BarChart3 className="size-3.5" /> Statistik
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setView('bukti')}
+                            className={cn(
+                                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                                view === 'bukti' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground',
+                            )}
+                        >
+                            <Images className="size-3.5" /> Bukti
+                        </button>
                     </div>
                 </form>
 
-                {!expenses || (rawRows.length === 0 && (expenses.daily?.length ?? 0) === 0) ? (
+                {!expenses || (rawRows.length === 0 && (expenses.daily?.length ?? 0) === 0 && proofPhotos.length === 0) ? (
                     <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
                         <Wallet className="size-10 text-muted-foreground/40" />
                         <p className="text-sm text-muted-foreground">
@@ -407,6 +468,55 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
 
                         {view === 'stats' ? (
                             <ExpenseDailyChart days={expenses.daily ?? []} />
+                        ) : view === 'bukti' ? (
+                            proofPhotos.length === 0 ? (
+                                <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+                                    <Images className="size-10 text-muted-foreground/40" />
+                                    <p className="text-sm text-muted-foreground">Belum ada bukti belanja diunggah untuk proyek ini.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {Array.from(groupProofsByDate(proofPhotos).entries()).map(([date, datePhotos]) => (
+                                        <section key={date} className="space-y-3">
+                                            <h3 className="flex items-baseline gap-2 font-serif text-sm font-semibold text-foreground">
+                                                <span>{formatProofDateHeader(date)}</span>
+                                                <span className="text-xs font-normal text-muted-foreground tabular-nums">{datePhotos.length}</span>
+                                            </h3>
+                                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                                                {datePhotos.map((photo) => {
+                                                    // Indeks pratinjau mengacu ke daftar rata `proofPhotos` (menembus
+                                                    // batas kelompok tanggal) — panah "berikutnya" di foto terakhir
+                                                    // suatu tanggal wajar lanjut ke tanggal berikutnya, bukan berhenti.
+                                                    const flatIndex = proofPhotos.findIndex((p) => p.id === photo.id);
+                                                    return (
+                                                        <button
+                                                            key={photo.id}
+                                                            type="button"
+                                                            onClick={() => setLightboxIndex(flatIndex)}
+                                                            className="group relative block aspect-square cursor-pointer overflow-hidden rounded-lg border border-border bg-muted transition duration-200 hover:border-primary/30 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                                            title={photo.caption ?? photo.file_name}
+                                                        >
+                                                            {photo.mime_type?.startsWith('video/') ? (
+                                                                <div className="flex h-full flex-col items-center justify-center gap-1.5 text-muted-foreground">
+                                                                    <Images className="size-6" />
+                                                                    <span className="text-[11px]">Video</span>
+                                                                </div>
+                                                            ) : (
+                                                                <img
+                                                                    src={expenseProofFileUrl(photo.id)}
+                                                                    alt={photo.caption || photo.file_name}
+                                                                    loading="lazy"
+                                                                    className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                                />
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </section>
+                                    ))}
+                                </div>
+                            )
                         ) : (
                             <>
                                 <p className="text-xs text-muted-foreground">
@@ -606,6 +716,15 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
                     </>
                 )}
             </div>
+
+            <MediaLightbox
+                items={lightboxItems}
+                index={lightboxIndex}
+                onClose={() => setLightboxIndex(null)}
+                onNavigate={setLightboxIndex}
+                fileUrl={expenseProofFileUrl}
+                downloadUrl={expenseProofDownloadUrl}
+            />
         </>
     );
 }

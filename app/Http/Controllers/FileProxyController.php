@@ -67,6 +67,18 @@ class FileProxyController extends Controller
      * Balas 404 kalau thumbnail tidak ada; klien sudah menyiapkan fallback
      * ke file asli.
      */
+    /**
+     * Bukti belanjaan (foto struk/nota) — tidak ditautkan ke baris belanja
+     * tertentu, cuma dikumpulkan per proyek. Sama seperti dailyReportMedia:
+     * `?download=1` untuk unduh, sebaliknya disajikan inline untuk galeri.
+     */
+    public function expenseProof(Request $request, int $proof): StreamedResponse
+    {
+        $query = $request->boolean('download') ? '?download=1' : '';
+
+        return $this->stream("/files/expense-proof/{$proof}{$query}");
+    }
+
     public function dailyReportMediaThumbnail(int $media): Response
     {
         $thumbnail = (new ErpApiClient)->thumbnail("/files/daily-report-media/{$media}/thumbnail");

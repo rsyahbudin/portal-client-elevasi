@@ -16,10 +16,13 @@ interface Props {
     index: number | null;
     onClose: () => void;
     onNavigate: (index: number) => void;
+    /** Default: proxy laporan harian. Diganti untuk galeri lain (mis. bukti belanja). */
+    fileUrl?: (id: number) => string;
+    downloadUrl?: (id: number) => string;
 }
 
-const fileUrl = (id: number) => `/files/daily-report-media/${id}`;
-const downloadUrl = (id: number) =>
+const defaultFileUrl = (id: number) => `/files/daily-report-media/${id}`;
+const defaultDownloadUrl = (id: number) =>
     `/files/daily-report-media/${id}?download=1`;
 
 /**
@@ -34,7 +37,14 @@ const downloadUrl = (id: number) =>
  * dan penguncian scroll latar berperilaku benar — bukan overlay buatan
  * sendiri yang biasanya melewatkan hal-hal itu.
  */
-export function MediaLightbox({ items, index, onClose, onNavigate }: Props) {
+export function MediaLightbox({
+    items,
+    index,
+    onClose,
+    onNavigate,
+    fileUrl = defaultFileUrl,
+    downloadUrl = defaultDownloadUrl,
+}: Props) {
     const isOpen = index !== null;
     const current = isOpen ? items[index] : undefined;
 

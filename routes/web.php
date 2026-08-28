@@ -29,6 +29,7 @@ Route::middleware('portal.session')->group(function () {
     Route::get('files/pipeline-attachment/{attachment}', [FileProxyController::class, 'pipelineAttachment'])->name('files.pipeline-attachment');
     Route::get('files/daily-report-media/{media}', [FileProxyController::class, 'dailyReportMedia'])->name('files.daily-report-media');
     Route::get('files/daily-report-media/{media}/thumbnail', [FileProxyController::class, 'dailyReportMediaThumbnail'])->name('files.daily-report-media.thumbnail');
+    Route::get('files/expense-proof/{proof}', [FileProxyController::class, 'expenseProof'])->name('files.expense-proof');
 });
 
 require __DIR__.'/settings.php';
