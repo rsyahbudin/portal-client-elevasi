@@ -7,7 +7,7 @@ import { MediaLightbox } from '@/components/media-lightbox';
 import { Paginator } from '@/components/paginator';
 import { ProjectNavTabs } from '@/components/project-nav-tabs';
 import { ProjectPageHeader } from '@/components/project-page-header';
-import { cn, formatDateID } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface MediaItem {
     id: number;
@@ -44,11 +44,14 @@ const FILTERS = [
     { value: 'video', label: 'Video' },
 ] as const;
 
-function groupByWorkItem(items: MediaItem[]): Map<string, MediaItem[]> {
+const NO_DATE_KEY = '__no_date__';
+
+/** Kelompokkan per tanggal laporan — urutan kelompok mengikuti urutan kemunculan item (server sudah urut terbaru dulu). */
+function groupByDate(items: MediaItem[]): Map<string, MediaItem[]> {
     const groups = new Map<string, MediaItem[]>();
 
     for (const item of items) {
-        const key = item.work_item_label;
+        const key = item.report_date ?? NO_DATE_KEY;
         const existing = groups.get(key);
 
         if (existing) {
@@ -61,6 +64,13 @@ function groupByWorkItem(items: MediaItem[]): Map<string, MediaItem[]> {
     return groups;
 }
 
+function formatDateHeader(dateKey: string): string {
+    if (dateKey === NO_DATE_KEY) return 'Tanpa tanggal';
+    const date = new Date(`${dateKey}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return dateKey;
+    return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+}
+
 export default function DocumentationIndex({
     project,
     documentation,
@@ -70,14 +80,14 @@ export default function DocumentationIndex({
     const currentPage = documentation?.current_page ?? 1;
     const lastPage = documentation?.last_page ?? 1;
     const stats = documentation?.stats;
-    const groups = groupByWorkItem(items);
+    const groups = groupByDate(items);
 
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
     /*
      * Penampil menavigasi seluruh berkas di halaman ini secara berurutan,
-     * menembus batas kelompok pekerjaan — menekan "berikutnya" di foto
-     * terakhir sebuah kelompok wajar dilanjutkan ke kelompok setelahnya,
+     * menembus batas kelompok tanggal — menekan "berikutnya" di foto
+     * terakhir sebuah tanggal wajar dilanjutkan ke tanggal setelahnya,
      * bukan berhenti. Maka indeksnya mengacu ke daftar rata `items`,
      * sementara `groups` hanya mengatur tampilan gridnya.
      */
@@ -151,14 +161,14 @@ export default function DocumentationIndex({
                     <>
                         <div className="flex flex-col gap-8">
                             {Array.from(groups.entries()).map(
-                                ([label, media]) => (
+                                ([dateKey, media]) => (
                                     <section
-                                        key={label}
+                                        key={dateKey}
                                         className="flex flex-col gap-3"
                                     >
                                         <h3 className="flex items-baseline gap-2 font-serif text-sm font-semibold text-foreground">
                                             <span className="min-w-0 truncate">
-                                                {label}
+                                                {formatDateHeader(dateKey)}
                                             </span>
                                             <span className="shrink-0 text-xs font-normal text-muted-foreground tabular-nums">
                                                 {media.length}
@@ -202,11 +212,9 @@ export default function DocumentationIndex({
                                                             </span>
                                                         </div>
                                                     )}
-                                                    {m.report_date && (
-                                                        <span className="absolute right-1.5 bottom-1.5 rounded-md bg-background/85 px-1.5 py-0.5 text-[10px] font-medium text-foreground backdrop-blur-sm">
-                                                            {formatDateID(
-                                                                m.report_date,
-                                                            )}
+                                                    {m.work_item_label && (
+                                                        <span className="absolute inset-x-1.5 bottom-1.5 truncate rounded-md bg-background/85 px-1.5 py-0.5 text-[10px] font-medium text-foreground backdrop-blur-sm">
+                                                            {m.work_item_label}
                                                         </span>
                                                     )}
                                                 </button>

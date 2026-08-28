@@ -28,6 +28,16 @@ function formatRp(value: number): string {
     return Math.round(value).toLocaleString('id-ID');
 }
 
+/** Label sumbu Y ringkas ("1,5jt", "850rb") — supaya selalu muat berapa pun besar angkanya. */
+function formatRpCompact(value: number): string {
+    const abs = Math.abs(value);
+    const sign = value < 0 ? '-' : '';
+    if (abs >= 1_000_000_000) return `${sign}${(abs / 1_000_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })}M`;
+    if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toLocaleString('id-ID', { maximumFractionDigits: 1 })}jt`;
+    if (abs >= 1_000) return `${sign}${(abs / 1_000).toLocaleString('id-ID', { maximumFractionDigits: 0 })}rb`;
+    return `${sign}${abs.toLocaleString('id-ID')}`;
+}
+
 function formatDateLabel(date: string): string {
     return new Date(date + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 }
@@ -87,19 +97,38 @@ export function ExpenseDailyChart({ days }: { days: ExpenseDailyRow[] }) {
 
     return (
         <div className="space-y-4">
-            <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+            <div className="rounded-xl border border-border bg-card p-3 shadow-xs sm:p-4">
                 <p className="mb-3 text-sm font-semibold text-foreground">Pemasukan vs pengeluaran per hari</p>
-                <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={days} margin={{ top: 4, right: 8, left: -12, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                        <XAxis dataKey="date" tickFormatter={formatDateLabel} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                        <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: number) => formatRp(v)} />
-                        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
-                        <Legend formatter={(value) => <span className="text-xs text-muted-foreground">{value}</span>} />
-                        <Bar dataKey="total_inflow" name="Masuk" fill={INFLOW_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
-                        <Bar dataKey="total_outflow" name="Keluar" fill={OUTFLOW_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
-                    </BarChart>
-                </ResponsiveContainer>
+                {/* min-width naik seiring jumlah hari — batang tidak pernah kebentur sempit,
+                    dan sumbu Y ikut ter-scroll bersama (bukan cuma bar-nya) jadi selalu jelas
+                    angkanya berapa, di layar sesempit apa pun. */}
+                <div className="overflow-x-auto">
+                    <div style={{ minWidth: Math.max(days.length * 56, 320) }}>
+                        <ResponsiveContainer width="100%" height={240}>
+                            <BarChart data={days} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    tickFormatter={formatDateLabel}
+                                    tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+                                <YAxis
+                                    tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickFormatter={(v: number) => formatRpCompact(v)}
+                                    width={44}
+                                />
+                                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+                                <Legend formatter={(value) => <span className="text-xs text-muted-foreground">{value}</span>} />
+                                <Bar dataKey="total_inflow" name="Masuk" fill={INFLOW_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                                <Bar dataKey="total_outflow" name="Keluar" fill={OUTFLOW_COLOR} radius={[3, 3, 0, 0]} maxBarSize={28} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
 
             <div className="space-y-2">
@@ -112,7 +141,7 @@ export function ExpenseDailyChart({ days }: { days: ExpenseDailyRow[] }) {
                             <div key={day.date} className="rounded-lg border border-border bg-card">
                                 <button
                                     type="button"
-                                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/40"
+                                    className="flex w-full flex-col items-start gap-1.5 px-3 py-3 text-left hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4"
                                     onClick={() => toggle(day.date)}
                                 >
                                     <div className="flex items-center gap-2">
@@ -123,9 +152,14 @@ export function ExpenseDailyChart({ days }: { days: ExpenseDailyRow[] }) {
                                         )}
                                         <span className="text-sm font-medium text-foreground">{formatDateFull(day.date)}</span>
                                     </div>
-                                    <div className="flex shrink-0 items-center gap-3 text-xs tabular-nums">
-                                        <span style={{ color: INFLOW_COLOR }}>+{formatRp(day.total_inflow)}</span>
-                                        <span style={{ color: OUTFLOW_COLOR }}>-{formatRp(day.total_outflow)}</span>
+                                    <div className="flex w-full shrink-0 items-center justify-between gap-3 pl-5.5 text-xs tabular-nums sm:w-auto sm:justify-end sm:pl-0">
+                                        <span className="flex items-center gap-3">
+                                            <span style={{ color: INFLOW_COLOR }}>+{formatRp(day.total_inflow)}</span>
+                                            <span style={{ color: OUTFLOW_COLOR }}>-{formatRp(day.total_outflow)}</span>
+                                        </span>
+                                        <span className="font-semibold text-foreground">
+                                            Saldo: Rp {formatRp(day.ending_balance)}
+                                        </span>
                                     </div>
                                 </button>
                                 {isOpen && (

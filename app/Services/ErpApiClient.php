@@ -86,12 +86,12 @@ class ErpApiClient
      * mengecek `project.can_view_expenses` dulu sebelum manggil ini, jadi
      * null di sini seharusnya cuma berarti masalah koneksi, bukan opt-in.
      */
-    public function expenses(int $projectId, int $page = 1, ?string $dateFrom = null, ?string $dateTo = null): ?array
+    public function expenses(int $projectId, ?string $dateFrom = null, ?string $dateTo = null): ?array
     {
-        $query = http_build_query(array_filter(['page' => $page, 'date_from' => $dateFrom, 'date_to' => $dateTo]));
+        $query = http_build_query(array_filter(['date_from' => $dateFrom, 'date_to' => $dateTo]));
 
         return $this->cachedGet(
-            "expenses_{$projectId}_p{$page}_{$dateFrom}_{$dateTo}",
+            "expenses_{$projectId}_{$dateFrom}_{$dateTo}",
             "/projects/{$projectId}/expenses?{$query}",
             self::CACHE_TTL_LIST,
         );

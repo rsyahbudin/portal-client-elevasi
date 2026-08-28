@@ -24,7 +24,7 @@ class ExpenseController extends Controller
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
 
-        $expenses = $erp->expenses($project, (int) $request->query('page', 1), $dateFrom, $dateTo);
+        $expenses = $erp->expenses($project, $dateFrom, $dateTo);
 
         return Inertia::render('expenses/index', [
             'project' => $projectData,
