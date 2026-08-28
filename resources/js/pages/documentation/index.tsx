@@ -205,11 +205,24 @@ export default function DocumentationIndex({
                                                             }
                                                         />
                                                     ) : (
-                                                        <div className="flex h-full flex-col items-center justify-center gap-1.5 text-muted-foreground">
-                                                            <PlayCircle className="size-6" />
-                                                            <span className="text-[11px]">
-                                                                Video
-                                                            </span>
+                                                        <div className="relative size-full bg-muted">
+                                                            {/* Tanpa `poster` — browser modern otomatis merender frame
+                                                                pertama sebagai preview begitu metadata termuat, jadi tiap
+                                                                video kelihatan beda satu sama lain (bukan kotak generik
+                                                                yang sama semua). `preload="metadata"` sengaja dipakai
+                                                                (bukan "auto") supaya cuma menarik metadata + frame awal,
+                                                                bukan seluruh berkas — grid ini bisa memuat puluhan video. */}
+                                                            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                                                            <video
+                                                                src={m.url}
+                                                                preload="metadata"
+                                                                muted
+                                                                playsInline
+                                                                className="size-full object-cover"
+                                                            />
+                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/15">
+                                                                <PlayCircle className="size-8 text-white drop-shadow" />
+                                                            </div>
                                                         </div>
                                                     )}
                                                     {m.work_item_label && (

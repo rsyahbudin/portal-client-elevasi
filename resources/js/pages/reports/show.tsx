@@ -246,11 +246,18 @@ export default function ReportShow({ project, report }: Props) {
                                                 }
                                             />
                                         ) : (
-                                            <div className="flex h-full flex-col items-center justify-center gap-1.5 text-muted-foreground">
-                                                <PlayCircle className="size-6" />
-                                                <span className="text-[11px]">
-                                                    Video
-                                                </span>
+                                            <div className="relative size-full bg-muted">
+                                                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                                                <video
+                                                    src={m.url}
+                                                    preload="metadata"
+                                                    muted
+                                                    playsInline
+                                                    className="size-full object-cover"
+                                                />
+                                                <div className="absolute inset-0 flex items-center justify-center bg-black/15">
+                                                    <PlayCircle className="size-8 text-white drop-shadow" />
+                                                </div>
                                             </div>
                                         )}
                                     </button>
