@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { GalleryImage } from '@/components/gallery-image';
 import type { LightboxItem } from '@/components/media-lightbox';
 import { MediaLightbox } from '@/components/media-lightbox';
-import { Paginator } from '@/components/paginator';
 import { ProjectNavTabs } from '@/components/project-nav-tabs';
 import { ProjectPageHeader } from '@/components/project-page-header';
 import { cn } from '@/lib/utils';
@@ -15,7 +14,7 @@ interface MediaItem {
     media_type: string;
     caption: string | null;
     report_date: string | null;
-    work_item_label: string;
+    work_item_label: string | null;
     url: string;
     /** null untuk video, atau bila OneDrive tidak punya turunan kecilnya. */
     thumbnail_url: string | null;
@@ -31,8 +30,6 @@ interface Props {
     };
     documentation: {
         data: MediaItem[];
-        current_page?: number;
-        last_page?: number;
         stats?: { total: number; photos: number; videos: number };
     } | null;
     selectedMediaType: string | null;
@@ -77,8 +74,6 @@ export default function DocumentationIndex({
     selectedMediaType,
 }: Props) {
     const items = documentation?.data ?? [];
-    const currentPage = documentation?.current_page ?? 1;
-    const lastPage = documentation?.last_page ?? 1;
     const stats = documentation?.stats;
     const groups = groupByDate(items);
 
@@ -101,13 +96,10 @@ export default function DocumentationIndex({
 
     const baseUrl = `/projects/${project.id}/documentation`;
 
-    function goTo(page: number, mediaType: string | null | undefined) {
+    function filterByMediaType(mediaType: string | null | undefined) {
         router.get(
             baseUrl,
-            {
-                ...(mediaType ? { media_type: mediaType } : {}),
-                ...(page > 1 ? { page } : {}),
-            },
+            mediaType ? { media_type: mediaType } : {},
             { preserveScroll: true },
         );
     }
@@ -135,7 +127,7 @@ export default function DocumentationIndex({
                                     key={opt.label}
                                     type="button"
                                     aria-pressed={isActive}
-                                    onClick={() => goTo(1, opt.value)}
+                                    onClick={() => filterByMediaType(opt.value)}
                                     className={cn(
                                         'flex-1 rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:flex-none sm:px-4',
                                         isActive
@@ -237,12 +229,6 @@ export default function DocumentationIndex({
                                 ),
                             )}
                         </div>
-
-                        <Paginator
-                            currentPage={currentPage}
-                            lastPage={lastPage}
-                            onNavigate={(page) => goTo(page, selectedMediaType)}
-                        />
                     </>
                 )}
             </div>

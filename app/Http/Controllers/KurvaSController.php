@@ -2,24 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\ErpApiClient;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Http\RedirectResponse;
 
 class KurvaSController extends Controller
 {
-    public function index(int $project): Response
+    /**
+     * Tab "Kurva S" sengaja disembunyikan sementara (belum final) — tab
+     * navnya sudah dilepas dari ProjectNavTabs, ini jaga-jaga kalau ada
+     * yang masih akses lewat link/bookmark lama. Balikin ke Laporan Harian.
+     * Untuk aktifkan lagi nanti: kembalikan body method ini seperti semula
+     * (render Inertia 'kurva-s/index' dari $erp->kurvaS()) dan tambahkan
+     * lagi entry "Kurva S" ke BASE_TABS di project-nav-tabs.tsx.
+     */
+    public function index(int $project): RedirectResponse
     {
-        $erp = new ErpApiClient;
-
-        $projectData = $erp->project($project);
-        abort_if($projectData === null, 404);
-
-        $kurvaS = $erp->kurvaS($project);
-
-        return Inertia::render('kurva-s/index', [
-            'project' => $projectData,
-            'kurvaS' => $kurvaS,
-        ]);
+        return redirect()->route('projects.reports.index', $project);
     }
 }

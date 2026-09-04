@@ -10,7 +10,8 @@ interface Props {
 
 const BASE_TABS = [
     { key: 'reports', label: 'Laporan Harian', segment: 'reports' },
-    { key: 'kurva-s', label: 'Kurva S', segment: 'kurva-s' },
+    // Tab "Kurva S" sengaja disembunyikan sementara — belum final, lihat
+    // KurvaSController::index() untuk guard sisi route-nya juga.
     { key: 'documentation', label: 'Dokumentasi', segment: 'documentation' },
 ] as const;
 

@@ -611,7 +611,20 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
 
                                 {/* Desktop & tablet: tabel penuh */}
                                 <div className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-xs sm:block">
-                                    <div className="overflow-x-auto">
+                                    {/*
+                                        `max-h` + `overflow-y-auto` eksplisit di sini sengaja,
+                                        bukan cuma sticky polos di header — div ini juga butuh
+                                        `overflow-x-auto` (tabel lebar tetap bisa digeser di
+                                        layar sempit), dan begitu satu sumbu overflow di-set
+                                        non-'visible', browser MEMAKSA sumbu satunya jadi
+                                        'auto' juga (walau ditulis eksplisit 'visible'
+                                        sekalipun). Kalau tingginya dibiarkan auto (ikut isi),
+                                        div ini tidak pernah benar-benar scroll sehingga
+                                        `sticky top-0` di header ikut lenyap begitu halaman
+                                        digulir — jadi tingginya sengaja dibatasi supaya
+                                        scrollnya sungguhan terjadi di dalam panel ini.
+                                    */}
+                                    <div className="max-h-[70vh] overflow-x-auto overflow-y-auto">
                                     <table className="w-full min-w-[860px] table-fixed text-sm lg:min-w-0">
                                         <colgroup>
                                             <col className="w-[9%]" />
@@ -623,8 +636,8 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
                                             <col className="w-[9%]" />
                                             <col className="w-[10%]" />
                                         </colgroup>
-                                        <thead>
-                                            <tr className="border-b border-border bg-muted/40 text-left text-xs tracking-wide text-muted-foreground uppercase">
+                                        <thead className="sticky top-0 z-10">
+                                            <tr className="border-b border-border bg-muted/95 backdrop-blur-sm text-left text-xs tracking-wide text-muted-foreground uppercase">
                                                 {COLUMNS.map((col) => {
                                                     const active = sort.key === col.key;
                                                     return (

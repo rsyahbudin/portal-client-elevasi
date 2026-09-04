@@ -71,11 +71,11 @@ class ErpApiClient
         return $this->cachedGet("kurva_s_{$projectId}", "/projects/{$projectId}/kurva-s", self::CACHE_TTL_DETAIL);
     }
 
-    public function documentation(int $projectId, int $page = 1, ?string $mediaType = null): ?array
+    public function documentation(int $projectId, ?string $mediaType = null): ?array
     {
-        $query = http_build_query(array_filter(['page' => $page, 'media_type' => $mediaType]));
+        $query = http_build_query(array_filter(['media_type' => $mediaType]));
 
-        return $this->cachedGet("documentation_{$projectId}_p{$page}_{$mediaType}", "/projects/{$projectId}/documentation?{$query}", self::CACHE_TTL_LIST);
+        return $this->cachedGet("documentation_{$projectId}_{$mediaType}", "/projects/{$projectId}/documentation?{$query}", self::CACHE_TTL_LIST);
     }
 
     /**

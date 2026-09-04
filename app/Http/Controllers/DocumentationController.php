@@ -17,11 +17,7 @@ class DocumentationController extends Controller
         abort_if($projectData === null, 404);
 
         $mediaType = $request->query('media_type');
-        $documentation = $erp->documentation(
-            $project,
-            (int) $request->query('page', 1),
-            $mediaType,
-        );
+        $documentation = $erp->documentation($project, $mediaType);
 
         return Inertia::render('documentation/index', [
             'project' => $projectData,
