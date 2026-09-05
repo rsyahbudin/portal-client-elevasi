@@ -176,6 +176,23 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
     const rawRows = expenses?.data ?? [];
     const summary = expenses?.summary;
     const proofPhotos = expenses?.proof_photos ?? [];
+
+    /*
+     * Ringkasan per kategori KESELURUHAN periode yang sedang ditampilkan
+     * (bukan per hari) — `summary.categories` dari ERP sudah dihitung atas
+     * seluruh rentang tanggal aktif (default: seluruh riwayat dompet kalau
+     * user tidak memfilter tanggal), jadi tinggal dipisah in/out & diurutkan
+     * di sini, bukan dihitung ulang per baris.
+     */
+    const categoryBreakdown = useMemo(() => {
+        const categories = summary?.categories ?? [];
+        const byTotal = (a: CategoryTotal, b: CategoryTotal) => b.total - a.total;
+
+        return {
+            inflow: categories.filter((c) => c.type === 'in').sort(byTotal),
+            outflow: categories.filter((c) => c.type === 'out').sort(byTotal),
+        };
+    }, [summary]);
     const [view, setView] = useState<'list' | 'stats' | 'bukti'>('list');
     const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'expense_date', direction: 'desc' });
     const [search, setSearch] = useState('');
@@ -467,7 +484,64 @@ export default function ExpensesIndex({ project, expenses, filters }: Props) {
                         </div>
 
                         {view === 'stats' ? (
-                            <ExpenseDailyChart days={expenses.daily ?? []} />
+                            <div className="flex flex-col gap-4">
+                                {(categoryBreakdown.inflow.length > 0 || categoryBreakdown.outflow.length > 0) && (
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        {categoryBreakdown.outflow.length > 0 && (
+                                            <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+                                                <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                                    <ArrowDownCircle className="size-3.5 text-red-600" />
+                                                    Pengeluaran per Kategori — Keseluruhan
+                                                </p>
+                                                <div className="flex flex-col gap-2.5">
+                                                    {categoryBreakdown.outflow.map((c) => (
+                                                        <div key={c.category} className="flex items-center justify-between gap-3 text-sm">
+                                                            <span className="min-w-0 truncate text-foreground" title={c.category}>
+                                                                {c.category}
+                                                            </span>
+                                                            <span className="shrink-0 text-right">
+                                                                <span className="font-medium tabular-nums text-foreground">
+                                                                    {fmtCurrency(c.total)}
+                                                                </span>
+                                                                <span className="ml-1.5 text-xs text-muted-foreground">
+                                                                    {c.count} baris
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {categoryBreakdown.inflow.length > 0 && (
+                                            <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+                                                <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                                    <ArrowUpCircle className="size-3.5 text-emerald-600" />
+                                                    Pemasukan per Kategori — Keseluruhan
+                                                </p>
+                                                <div className="flex flex-col gap-2.5">
+                                                    {categoryBreakdown.inflow.map((c) => (
+                                                        <div key={c.category} className="flex items-center justify-between gap-3 text-sm">
+                                                            <span className="min-w-0 truncate text-foreground" title={c.category}>
+                                                                {c.category}
+                                                            </span>
+                                                            <span className="shrink-0 text-right">
+                                                                <span className="font-medium tabular-nums text-foreground">
+                                                                    {fmtCurrency(c.total)}
+                                                                </span>
+                                                                <span className="ml-1.5 text-xs text-muted-foreground">
+                                                                    {c.count} baris
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <ExpenseDailyChart days={expenses.daily ?? []} />
+                            </div>
                         ) : view === 'bukti' ? (
                             proofPhotos.length === 0 ? (
                                 <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
